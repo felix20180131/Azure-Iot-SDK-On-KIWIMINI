@@ -2,14 +2,10 @@
 
 # 1. Hardware platform preparation.
 
-- KIWI MINI gateway device 1*PCS, as shown below :
+   KIWI MINI gateway and HMT BLE sensor device, those are as follows:
 
-     ![](https://i.imgur.com/rurn84O.png)
-  
-- HMT BLE sensor 1*PCS , as shown below :
+   ![](https://i.imgur.com/rurn84O.png)   ![](https://i.imgur.com/8qLktgi.png)
 
-    ![](https://i.imgur.com/8qLktgi.png)
-   
 # 2. Build development environment and Compile SDKs.
   
 - Install necessary development tools on your windows PC.
@@ -23,13 +19,14 @@
     
     - [WinSCP](https://winscp.net/eng/download.php)
     
-       We can use this tool to access gateway system, and dump out some files to analyze issues or copy app image to system to run in development stage.
+        We can use this tool to access gateway system, and dump out some files to analyze issues or copy app image to system to run in development stage.
  
-- Install some dependent libs on your linux compiling environment.
+- Install some dependent libraries on your linux PC which will build compiling environment.
 
         apt-get update
 		apt-get upgrade
-        apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev
+        apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev gcc g++ binutils patch autoconf libcurl4-openssl-dev bzip2 flex make gettext pkg-config unzip zlib1g-dev libc6-dev subversion git libncurses5-dev gawk sharutils curl libxml-parser-perl python-yaml ocaml-nox ocaml ocaml-findlib libssl-dev
+
 	
 - How to get toolchain for compiling ?
 
@@ -55,19 +52,20 @@
 		        make defconfig
 		        make menuconfig
 		        make V=s 
-		  The developer can reference the packages configuration(make menuconfig).the file is  "configuration\example\.config". and the developer can put this file to "<OPENWRT_ROOT_DIR>/\barrier_breaker" to see the selected packages.
+		  The developer can reference the packages configuration(make menuconfig).the file is  "configuration\example\.config". and the developer can put this file to "<OPENWRT_ROOT_DIR>\barrier_breaker" to see the selected packages.
         
 
      - Known compile issue:
            
-          ![](https://i.imgur.com/Ij4LAn8.png)
+           ![](https://i.imgur.com/Ij4LAn8.png)
 
-         The reason is that the MAC80211 WIFI drivers comppiled in defult configuration ,but developer needn't to slect and compile this type of WIFI. So cancel this WIFI drivers selection in "make menuconfig".
+         The reason is caused by compiling the MAC80211 WIFI drivers with defult configuration ,but on KIWI MINI , the developer needn't to compile this type of WIFI drivers again. So i recommend that the developer doesn't to compile this WIFI drivers and use "make menuconfig" to configure openwrt by yourself.
   
     
-           After comipiled successfully ,the developer can find the toolchain in this folder:
+           After comipiled successfully ,the developer can find the toolchain in this folder.
+           For example:
 
-          ![](https://i.imgur.com/bCcSPDs.png)
+           ![](https://i.imgur.com/bCcSPDs.png)
 
           ```
           cd <OPENWRT_ROOT_DIR>/barrier_breaker/bin/ar71xx
@@ -75,6 +73,8 @@
           ```
  		  tar -jxvf OpenWrt-Toolchain-ar71xx-for-mips_34kc-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2
 		  ```
+          
+          //copy some compiled libraries to toolchain user libraries directory
 
 		  ```
           cp -rf ../../staging_dir/target-mips_34kc_uClibc-0.9.33.2/usr/* OpenWrt-Toolchain-ar71xx-for-mips_34kc-gcc-4.8-linaro_uClibc-0.9.33.2/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/usr/
@@ -82,7 +82,7 @@
 
 - Download Azure iot SDKs.
 
-     You know Azure iot SDK had implemented by many languages ,as C,Python,C#,JAVA etc. And for  more details ,the developer can access to [Mircrosoft Azure iot SDK](https://github.com/Azure) web site . But in this document,we foucs on Python and C Azure SDK only.
+     You know Azure iot SDK had been implemented by many languages ,as C,Python,C#,JAVA etc. And the developer can access to [Mircrosoft Azure iot SDK](https://github.com/Azure) web site to get more details. But in this document, we foucs on Python and C Azure SDK only.
  
      - Download Azure iot SDK for Python.
 
@@ -100,6 +100,7 @@
       - Compile Azure iot SDK for Python.
          
         The developer can reference the example of "Example of Cross Compiling the Azure IoT SDK for Python.md" in SDK. 
+        run "<AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/build_all/linux/setup.sh" to update system development environment,if done ,no need to do next time.
         
         - Compile Boostlinux module:
         
@@ -110,60 +111,88 @@
 	              mkdir boostmlinux-1-64-0
 	              mkdir boost-build
 	              ./bootstrap.sh --with-libraries=python –-prefix=<BOOST_ROOT_DIR>/boost_1_64_0/boostmlinux-1-64-0
-	              vi project-config.jam ###Open this file,and do configuration and save, please see example: "configuration\example\project-config.jam".
+
+
+                  //edit this file to do configuration file and save, please see a example: "configuration\example\python\project-config.jam".
+	              vi project-config.jam 
+
+
 	              ./b2 toolset=gcc-mips --build-dir=<BOOST_ROOT_DIR>/boost_1_64_0/boost-build link=static install
         
         - Compile Azure iot sdk for Python:
 
 
 	              cd <AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python
+                  //creat output directory 
 	              mkdir  kiwi_out
 	              cd <AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/build_all/linux
-	              touch toolchain-kiwimini.cmake
-	              vi toolchain-kiwimini.cmake ###Open this file,and do configuration and save, please see example: "configuration\example\toolchain-kiwimini.cmake".
-	              #edit build.sh and modify the line which will call "c/build_all/linux/build.sh",for example:
-	              ./c/build_all/linux/build.sh --build-python $PYTHON_VERSION $* --provisioning $USE_TPM_SIM --toolchain-file "<AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/build_all/linux/toolchain-kiwimini.cmake" --install-path-prefix "<AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/kiwiout"
-	              ./build.sh ###compile azure python sdk
+                  //creat a cmake configuration file
+	              touch mips-34kc-gcc-4.8-toolchain-python.cmake
+                  
+                  //edit this file to do configuration and save, please see a example: "configuration\example\python\mips-34kc-gcc-4.8-toolchain-python.cmake".
+	              vi mips-34kc-gcc-4.8-toolchain-python.cmake
+	              
+                  //edit build.sh and modify the line which will call "c/build_all/linux/build.sh",for example:
+	              ./c/build_all/linux/build.sh --build-python $PYTHON_VERSION $* --provisioning $USE_TPM_SIM --toolchain-file "<AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/build_all/linux/mips-34kc-gcc-4.8-toolchain-python.cmake" --install-path-prefix "<AZURE_PYTHON_ROOT_DIR>/azure-iot-sdk-python/kiwiout"
+                  //run build.sh to start compiling
+	              ./build.sh
 
 		- Known compile issues:
      
-            Issue1: When compiling , Maybe show error log of "relocation R_MIPS16_26 against `PyErr_Occurred' can not be used when making a shared object; recompile with -fPI",so the developer needs to recompile Python lib with "-fPIC". For example: edit "<OPENWRT_ROOT_DIR>/feeds/oldpackages/lang/python/Makefile",add "-fPIC" paramter.
+            Issue1: Error log is "relocation R_MIPS16_26 against `PyErr_Occurred' can not be used when making a shared object; recompile with -fPI",
+            This means is that the developer needs to recompile Python library with "-fPIC". For example: edit "<OPENWRT_ROOT_DIR>/feeds/oldpackages/lang/python/Makefile",add "-fPIC" paramter.
               
-            Issue2:When compiling , Maybe show error log of "libboost_python.a: could not read symbols:Bad Value", the reason is same as Issue1, so should modify file of "<BOOST_ROOT_DIR>/boost_1_64_0/tools/build/src/tools/gcc.jam",as:
-     ![](https://i.imgur.com/vp2VHmO.png)
+            Issue2:	Error log is "libboost_python.a: could not read symbols:Bad Value", this reason is same as Issue1, so should modify file of "<BOOST_ROOT_DIR>/boost_1_64_0/tools/build/src/tools/gcc.jam",as:
+            ![](https://i.imgur.com/vp2VHmO.png)
 
 
    - Compile Azure iot SDK for C
    
-           To be continued.
+            cd <AZURE_C_ROOT_DIR>/azure-iot-sdk-c/build_all/linux
+             
+            //update system development environment,if done ,no need to do next time
+            ./setup.sh
+            //creat a cmake configuration file
+            touch mips-34kc-gcc-4.8-toolchain-c.cmake
+       
+            //edit this file to do configuration and save, please see a example: "configuration\example\c\mips-34kc-gcc-4.8-toolchain-c.cmake".
+	        vi mips-34kc-gcc-4.8-toolchain-c.cmake
 
-# 3. Run samples on KIWI MINI.
+            ./build.sh --toolchain-file "<AZURE_C_ROOT_DIR>/azure-iot-sdk-c/build_all/linux/mips-34kc-gcc-4.8-toolchain-c.cmake" --install-path-prefix "<AZURE_C_ROOT_DIR>/azure-iot-sdk-c/kiwiout" -cl
 
-   Step1: power on the kiwi mini gateway device, the developer needs to check status mode which is AP or STA. If device mode is not STA mode ,the developer shuold configure network first.
+      Note: If you need to run sample of "iothub_client_sample_mqtt" , you need modify default connection string to yours ,as follow:
+
+       edit iothub_client_sample_mqtt.c
+         ![](https://i.imgur.com/EqAN8XU.png)
+
+       How to get connection string ? The developer shold follow instructions in [Azure iot hub Cloud](https://portal.azure.com/#resource/subscriptions/81f3357e-37d1-4ecf-85b8-e9c4d6cc5347/resourceGroups/group2/providers/Microsoft.Devices/IotHubs/myIotHub-2018/Overview) website to creat account and regist devices.
+
+# 3. Run SDK samples on KIWI MINI.
+
+   Step1: power on the KIWI MINI, the developer needs to check status mode which is AP or STA. If device mode is not STA mode ,the developer shuold configure network first.
   
 -     If your device is AP mode ,the gateway can broadcast own address automatically, and the developer can see the WIFI SSID (The format is "Tonly_xxx")on PC,  and connect this point ,for example:
     
-   ![](https://i.imgur.com/iJ0kB1T.png)
+     ![](https://i.imgur.com/iJ0kB1T.png)
    
      and then use "192.168.88.1" to login gateway system by telenet in SecureCRT. as:
 
-   ![](https://i.imgur.com/OJftNma.png) 
+     ![](https://i.imgur.com/OJftNma.png) 
    
      1)Set password for root account:
 
-   ![](https://i.imgur.com/THDnzpp.png)
+       ![](https://i.imgur.com/THDnzpp.png)
 
      2)Configure network and ensure the gateway device can access internet by connect the upside AP.
        For example:
-       
-   ![](https://i.imgur.com/hkQMjlw.png)
+                  ![](https://i.imgur.com/hkQMjlw.png)
 
       At last, this gateway is in STA mode , the upside AP will allocate the IP addr to the gateway.
 
 -     If your device is STA mode ,you can use IP which had been allocated by upside AP and password to login gateway by SSH in SecureCRT. 
       If you forget the password , you can always press key 10 seconds on gateway, and the system will recovery to default configuration and AP mode,and then you need reconfigure network again for STA mode.
 
-  Step2: Put compiled files into the gateway system that are running and dependent on the system.
+  Step2: Put compiled files into the gateway system that are running and dependent on the system. (or use "tftp-hpa" to push files to gateway system,as " tftp-hpa [IP] -m binary -c get [file]")
 
 
    - For example of Python:
@@ -173,8 +202,13 @@
      
      ![](https://i.imgur.com/jbjbXxH.png)
 
-  Step3:Get connected string from Azure iot hub cloud. The developer shold follow instructions in [Azure iot hub Cloud](https://portal.azure.com/#resource/subscriptions/81f3357e-37d1-4ecf-85b8-e9c4d6cc5347/resourceGroups/group2/providers/Microsoft.Devices/IotHubs/myIotHub-2018/Overview) website to creat account and regist devices.
-  Step4:run samples.    
+  Step3:Get connected string from Azure iot hub cloud. The developer shold follow instructions in [Azure iot hub Cloud](https://portal.azure.com/#resource/subscriptions/81f3357e-37d1-4ecf-85b8-e9c4d6cc5347/resourceGroups/group2/providers/Microsoft.Devices/IotHubs/myIotHub-2018/Overview) website to creat account and regist devices. 
+  
+  Step4:change permission for current files.
+           
+            chmod 777 . -R
+
+  Step5:run samples.    
 
    - For example of Python:
     ![](https://i.imgur.com/iAf4RDv.png)
@@ -183,4 +217,16 @@
                  Because of the Python Version is V2.7.3 ,the developer should ensure the Python version in PC is same as gateway system.Oherwise this issue will be presented.
    - For example of C:
      
-     To be continue.          
+          		./iothub_client_sample_mqtt
+
+
+
+# 4. Capture air parameters form HMT sensor device on KIWI MINI.
+
+   Ensure that HMT device is working to monitor the current air environment. you can reference the sample of "samples/CaptureAirSample.py" . you need push the sample file to KIWI MINI. and then: 
+   
+        python CaptureAirSample.py 6C:5A:B5:7E:9E:9B
+        
+        result:
+               temperature: 25.2
+               humidity: 52%   
