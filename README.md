@@ -52,7 +52,7 @@
 		        make defconfig
 		        make menuconfig
 		        make V=s 
-		  The developer can reference the packages configuration(make menuconfig).the file is  "configuration\example\.config". and the developer can put this file to "<OPENWRT_ROOT_DIR>\barrier_breaker" to see the selected packages.
+		  The developer can reference the packages configuration(make menuconfig).the file is  "configuration\example\config_toolchain". and the developer can put this file to "<OPENWRT_ROOT_DIR>\barrier_breaker" to see the selected packages.
         
 
      - Known compile issue:
